@@ -1,5 +1,6 @@
 #!/usr/bin/env/python
 
+import argparse
 import yaml
 import re
 
@@ -72,6 +73,7 @@ def __create_headers_table(headers_section: dict, headers_components: dict) -> s
         nameHeaderColumnWidth = __create_table_separator(nameHeaderColumnWidth, name)
 
         if '$ref' in header_content:
+            breakpoint()
             header_ref = header_content['$ref']
             header_ref_name = header_ref[header_ref.rfind('/') + 1:]
             if header_ref_name not in headers_components:
@@ -104,7 +106,12 @@ def __create_file_name(title: str) -> str:
     return file_name
     
 
-with open("example.yaml", "r") as stream:
+
+parser = argparse.ArgumentParser(description="Convert an OpenAPI YAML file to a Markdown file")
+parser.add_argument("file", help="The file to parse")
+args = parser.parse_args()
+
+with open(args.file, "r") as stream:
     try:
         data = yaml.safe_load(stream)
         
@@ -141,7 +148,7 @@ with open("example.yaml", "r") as stream:
                     description = method_content['description']
 
                 # Request parameters
-                if not request_parameters and method_content['parameters']:
+                if not request_parameters and 'parameters' in method_content:
                     request_parameters = method_content['parameters']
                     request_parameters_table = __create_parameter_section(request_parameters)
 
