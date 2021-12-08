@@ -52,7 +52,7 @@ def __create_parameter_section(request_parameters: list) -> str:
     table += tableBody
     return table
 
-def __create_headers_table(headers_section: dict) -> str:
+def __create_headers_table(headers_section: dict, headers_components: dict) -> str:
     tableTemplate = '| {col1} | {col2} | {col3} | {col4} |\n'
     nameHeader = 'Header'
     nameHeaderColumnWidth = len(nameHeader)
@@ -68,20 +68,25 @@ def __create_headers_table(headers_section: dict) -> str:
 
     tableBody = ''
     for header, header_content in headers_section.items():
-        if '$ref' in header_content:
-            # TODO
-            continue
-
         name = header
         nameHeaderColumnWidth = __create_table_separator(nameHeaderColumnWidth, name)
-        
-        type = header_content['schema']['type']
+
+        if '$ref' in header_content:
+            header_ref = header_content['$ref']
+            header_ref_name = header_ref[header_ref.rfind('/') + 1:]
+            if header_ref_name not in headers_components:
+                raise Exception(f'{header_ref_name} not found in the \'components/headers\' section')
+            header_component = headers_components[header_ref_name]
+            type = header_component['schema']['type']
+            example = header_component['schema']['example']
+            description = header_component['description']
+        else:
+            type = header_content['schema']['type']
+            example = header_content['schema']['example']
+            description = header_content['description']
+
         typeHeaderColumnWidth = __create_table_separator(typeHeaderColumnWidth, type)
-       
-        example = header_content['schema']['example']
         exampleHeaderColumnWidth = __create_table_separator(exampleHeaderColumnWidth, example)
-       
-        description = header_content['description']
         descriptionHeaderColumnWidth = __create_table_separator(descriptionHeaderColumnWidth, description)
 
         tableBody += f'|{name}|{description}|{type}|{example}|\n'
@@ -104,6 +109,7 @@ with open("example.yaml", "r") as stream:
         data = yaml.safe_load(stream)
         
         paths = data['paths']
+        headers_components = data['components']['headers'] if 'headers' in data['components'] else None
 
         for path, path_content in paths.items():
             # Title section
@@ -161,9 +167,13 @@ with open("example.yaml", "r") as stream:
                 f.write(f'\n### {response}\n')
                 f.write(response_content['description'])
                 f.write('\n#### Headers\n')
-                f.write( __create_headers_table(response_content['headers']));
+                f.write( __create_headers_table(response_content['headers'], headers_components));
+        
+            f.close()
 
     except yaml.YAMLError as exc:
         print(exc)
+    except Exception as ex:
+        print(ex)
 
 
