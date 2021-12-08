@@ -1,0 +1,72 @@
+openapi: 3.0.1
+info:
+  title: Example APIs
+  description: This is a OpenAPI example file
+  contact:
+    name: Support
+    url: https://example.com
+    email: oas2md@example.com
+  license:
+    name: Apache License Version 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  version: 1.0.6
+
+servers:
+  - url: https://hostname/endpoint
+    variables:
+      environment:
+        default: test
+        enum:
+          - dev
+          - test
+          - stage
+          - prod
+
+tags:
+  - name: example
+    description: Example of a tag
+
+paths:
+  /path1/path2:
+    get:
+      summary: Get a `path2` resource
+      description: >
+        Given an identifier, return a `path2` resrouce, if found.
+        <br />
+        There are four possible results:
+          * result 1 → something
+          * result2:
+            * something else → do something different
+            * something else but quite similar to the previous case → do something different again
+          * anything else → do whatever you want
+      externalDocs:
+        description: Very beautiful documentation and further details
+        url: https://example.com/wiki/path1/path2
+      tags:
+        - example
+      parameters:
+        - in: query
+          name: resourcename
+          schema:
+            type: string
+          example: 12345a6789b01234c
+          required: true
+          description: The name of the resource to retrieve
+      responses:
+        '302':
+          description: >
+            This service goes anywhere.<br />
+            Available URLs are:
+              * Success request - https://{host}/success
+              * Almost success - https://{host}/success-1
+              * Almost success, case 2- https://{host}/success-2
+              * Error - https://{host}/error-page
+          headers:
+            Location:
+              description: The page to redirect to
+              schema:
+                type: string
+                format: uri
+                example: https://{host}/success
+            ssoRequestId:
+              $ref: '#/components/headers/commonHeader'
