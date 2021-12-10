@@ -1,18 +1,18 @@
 openapi: 3.0.1
 info:
-  title: Example APIs
-  description: This is a OpenAPI example file
+  title: SSO APIs
+  description: The purpose of this document is to describe all APIs provided by ReSky.
   contact:
     name: Support
-    url: https://example.com
-    email: oas2md@example.com
+    url: https://wiki.at.sky/display/DPTECH/Servlet+Flows
+    email: dl.ita.it.agileteam.sso@skytv.it
   license:
     name: Apache License Version 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
   version: 1.0.6
 
 servers:
-  - url: https://hostname/endpoint
+  - url: https://resky.insideauth.{environment}.sky.aws/ReSky
     variables:
       environment:
         default: test
@@ -23,50 +23,127 @@ servers:
           - prod
 
 tags:
-  - name: example
-    description: Example of a tag
+  - name: onepuck - activation
+    description: Operations for the OnePuck activation flow
 
 paths:
-  /path1/path2:
+  /skyid/activate:
     get:
-      summary: Get a `path2` resource
+      summary: Start the OnePuck activation process for a user.
       description: >
-        Given an identifier, return a `path2` resrouce, if found.
+        Given an identification token (GUID), this service validate the user data (if the user is valid, active, etc.) and redirect the request to the next step accordingly the outcome of the process.
         <br />
         There are four possible results:
-          * result 1 → something
-          * result2:
-            * something else → do something different
-            * something else but quite similar to the previous case → do something different again
-          * anything else → do whatever you want
+          * the user is valid → go to final step of the activation process
+          * the link is expired:
+            * the user has a registered mobile phone → go to the OTP validation steps
+            * the user hasn't a registered mobile phone → go to the manual registration steps
+          * Something went wrong (request or user data are not valid, server errors, etc.) → go to error page
       externalDocs:
-        description: Very beautiful documentation and further details
-        url: https://example.com/wiki/path1/path2
+        description: Service flow and further details
+        url: https://wiki.at.sky/display/DPTECH/activateUserPrereg
       tags:
-        - example
+        - onepuck - activation
       parameters:
         - in: query
-          name: resourcename
+          name: guid
           schema:
             type: string
           example: 12345a6789b01234c
           required: true
-          description: The name of the resource to retrieve
+          description: The user identification token required to retrieve the user data
       responses:
         '302':
           description: >
-            This service goes anywhere.<br />
+            This service will redirect to a page defined by the `Location` response header, depending on the outcome of the processing.<br />
             Available URLs are:
-              * Success request - https://{host}/success
-              * Almost success - https://{host}/success-1
-              * Almost success, case 2- https://{host}/success-2
-              * Error - https://{host}/error-page
+              * Success request - https://{host}/tv/skyq/attivazione-skyid
+              * Expired link, the user has a valid mobile phone - https://{host}/tv/skyq/attivazione-skyid?goto=onePuckSectionRestoreSkyId
+              * Expired link, the user doesn't have a valid mobile phone - https://{host}/tv/skyq/attivazione-skyid?goto=onePuckSectionRestoreSkyId&na=true
+              * Error - https://{host}/it/attivazione-skyid-ko
           headers:
             Location:
               description: The page to redirect to
               schema:
                 type: string
                 format: uri
-                example: https://{host}/success
+                example: https://{host}/tv/skyq/attivazione-skyid
             ssoRequestId:
-              $ref: '#/components/headers/commonHeader'
+              $ref: '#/components/headers/ssoRequestId'
+  /skyid/changePasswordPrereg:
+      post:
+        summary: Activate the user account.
+        description: >
+          Final step of the OnePuck activation flow.
+          Update the user password, setting it to the value provided in the form shown above (if the password is valid), and activate the user.
+        externalDocs:
+          description: Service flow and further details
+          url: https://wiki.at.sky/display/DPTECH/cleanUserPrereg
+        tags:
+          - onepuck - activation
+        responses:
+          '200':
+            description: Default response returned by all the ReSky's services. The outcome of the request (success or failure) is defined by the content of the response.
+            headers:
+              Set-Cookie:
+                schema:
+                  type: string
+                  example: GUID=deleteme; Domain=.sky.it; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Path=/
+                description: The invalidated GUID cookie.
+              ssoRequestId:
+                $ref: '#/components/headers/ssoRequestId'
+              Expires:
+                $ref: '#/components/headers/Expires'
+              Cache-Control:
+                $ref: '#/components/headers/Cache-Control'
+              Content-Type:
+                $ref: '#/components/headers/Content-Type'
+              Pragma:
+                $ref: '#/components/headers/Pragma'
+        
+components:
+  headers:
+    ssoRequestId:
+      schema:
+        type: string
+        example: 12a3bc4d-e5fg
+      description: A unique identifier which identifies all the operations of a request
+    Expires:
+      schema:
+        type: string
+        format: date-time
+        example: Mon, 26 Jul 1997 05:00:00 GMT
+      description: >
+        Contains the date/time after which the response is considered expired. A date in the past means that the resource is already expired.\
+
+        For historical reasons, this header has a fixed value of `Mon, 26 Jul 1997 05:00:00 GMT`
+    Cache-Control:
+      schema:
+        type: string
+        example: no-store, no-cache, must-revalidate, pre-check=0, post-check=0
+      description: >
+        `no-cache` allows caches to store a response, but requires them to revalidate it before reuse.\
+
+        `must-revalidate` response directive indicates that the response can be stored in caches and can be reused while fresh. Once it becomes stale, it must be validated with the origin server before reuse.\
+
+        `no-store` indicates that any caches of any kind (private or shared) should not store this response.\
+
+        `pre-check` and `post-check` are Internet Explorer dedicated directives avoiding response caching.
+    Content-Type:
+      schema:
+        type: string
+        example: application/json;charset=utf-8
+      description: The MIME type and the character encoding standard of the resource or the data.
+    Pragma:
+      schema:
+        type: string
+        example: no-cache
+      description: This header serves for backwards compatibility with the HTTP/1.0 caches that do not have a Cache-Control HTTP/1.1 header.
+    Set-Cookie-rec:
+      schema:
+        type: string
+        example: REC=abcde12345; Secure; HttpOnly
+      description: >
+        REC<br/>
+        Permanent cookie required to authenticate the user request through several linked steps, when no other authentications (e.g. login)
+        are available (for example, in the recover info flows).

@@ -3,6 +3,9 @@
 import argparse
 import yaml
 import re
+import utils.YamlConverter
+
+from MarkdownFile import MarkdownFile
 
 
 def __create_table_separator(current_param_len: int, new_parameter: str):
@@ -73,7 +76,6 @@ def __create_headers_table(headers_section: dict, headers_components: dict) -> s
         nameHeaderColumnWidth = __create_table_separator(nameHeaderColumnWidth, name)
 
         if '$ref' in header_content:
-            breakpoint()
             header_ref = header_content['$ref']
             header_ref_name = header_ref[header_ref.rfind('/') + 1:]
             if header_ref_name not in headers_components:
@@ -114,38 +116,40 @@ args = parser.parse_args()
 with open(args.file, "r") as stream:
     try:
         data = yaml.safe_load(stream)
+
+        utils.YamlConverter.convert_paths(data)
         
         paths = data['paths']
         headers_components = data['components']['headers'] if 'headers' in data['components'] else None
 
         for path, path_content in paths.items():
+            markdown_file = MarkdownFile()
+
             # Title section
-            title = path
+            markdown_file.title = path
             
             not_first = False
-            method_section = ''
-            summary = ''
-            description = ''
+            
             request_parameters = ''
             request_body = ''
 
             for method, method_content in path_content.items():
                 # Methods section
                 if not_first:
-                    method_section += 'OR\n'    # The OR section is required due to bad design choices, where the same API could be exposed with GET and POST method at the same time, doing the same process
-                method_section += '\n```HTTP\n'
-                method_section += method.upper() + ' ' + title + '\n'
-                method_section += '```\n'
+                    markdown_file.method_section += 'OR\n'    # The OR section is required due to bad design choices, where the same API could be exposed with GET and POST method at the same time, doing the same process
+                markdown_file.method_section += '\n```HTTP\n'
+                markdown_file.method_section += method.upper() + ' ' + markdown_file.title + '\n'
+                markdown_file.method_section += '```\n'
                 if not not_first:
                     not_first = True
 
                 # Summary
-                if not summary:
-                    summary = method_content['summary']
+                if not markdown_file.summary:
+                    markdown_file.summary = method_content['summary']
                 
                 # Description
-                if not description:
-                    description = method_content['description']
+                if not markdown_file.description:
+                    markdown_file.description = method_content['description']
 
                 # Request parameters
                 if not request_parameters and 'parameters' in method_content:
@@ -157,12 +161,12 @@ with open(args.file, "r") as stream:
                     
 
 
-            file_name = __create_file_name(title)
+            file_name = __create_file_name(markdown_file.title)
             f = open(f'{file_name}.md', "w")
-            f.write(f'# {title}')
-            f.write(method_section)
-            f.write(f'\n## Summary\n{summary}')
-            f.write(f'\n## Description\n{description}')
+            f.write(f'# {markdown_file.title}')
+            f.write(markdown_file.method_section)
+            f.write(f'\n## Summary\n{markdown_file.summary}')
+            f.write(f'\n## Description\n{markdown_file.description}')
             f.write('\n---')
             f.write('\n## Request')
             if request_parameters:
