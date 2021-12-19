@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class Header():
+class Header:
     name: str
     description: str = field(init=False, default=None)
     type: str = field(init=False, default=None)

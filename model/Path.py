@@ -5,7 +5,7 @@ from model.Method import Method
 
 
 @dataclass
-class Path():
+class Path:
     title: str
     methods: list[Method] = field(init=False, default=None)
 
