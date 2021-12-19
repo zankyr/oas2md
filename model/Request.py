@@ -1,7 +1,8 @@
-
 from dataclasses import dataclass
+
+from model.Content import Content
 
 
 @dataclass
-class Request():
-    pass
+class Request:
+    content: list[Content]

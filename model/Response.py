@@ -1,9 +1,12 @@
-
 from dataclasses import dataclass
 
-from model.ResponseResult import ResponseResult
+from model.Header import Header
+from model.Content import Content
 
 
 @dataclass
-class Response():
-    results: list[ResponseResult]
+class Response:
+    code: int
+    description: str
+    headers: list[Header]
+    content: list[Content]
