@@ -118,20 +118,6 @@ def test(paths: list[Path]):
             f.write(method.method.upper() + ' ' + path.title + '\n')
             f.write('```\n')
 
-            # TOC
-            f.write('1. [Summary](#summary)')
-            f.write('2. [Description](#summary)')
-            f.write('3. [Request](#summary)')
-            f.write('4. [Responses](#summary)')
-            
-            f.write(f'\n## Summary\n{method.summary}')
-            f.write(f'\n## Description\n{method.description}')
-            f.write('\n---')
-            f.write('\n## Request')
-            # if request_parameters:
-            #     f.write('\n### Parameters\n')
-            #     f.write(request_parameters_table)
-
             f.write('\n## Responses')
             for response_result in method.response.results:
                 f.write(f'\n### {response_result.code}\n')
