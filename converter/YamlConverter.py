@@ -23,7 +23,7 @@ def __get_responses(method_content: dict, components: dict) -> list[Response]:
 
 
 def __get_request(method_content: dict, components: dict) -> Request:
-    bodies = [ResponseBodyConverter.get_response_content(method_content['requestBody'], components)]
+    bodies = ResponseBodyConverter.get_response_content(method_content['requestBody'], components)
 
     return Request(bodies)
 
