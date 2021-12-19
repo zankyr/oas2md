@@ -22,10 +22,21 @@ file
 ├── description
 ├── request
 │   └── parameters
-└── response
+└── response[]
     └── http code
         ├── description
-        └── headers
+        ├── headers[]
+        │   ├── name
+        │   ├── description
+        │   ├── type
+        │   └── example
+        └── media-type
+            ├── parameter
+            ├── description
+            ├── type
+            ├── required
+            └── example
+
 ```
 
 
@@ -36,7 +47,14 @@ $ pip install pyyaml
 ```
 
 ## How to
+
+### Install a virtual environment
+pyenv virtualenvwrapper
+mkvirtualenv tavern-venv
+python -m pip install --upgrade pip
+pip install pyyaml
+
 Execute the script:
 ```bash
-$ python /path/to/file/oas2md.py
+$ python /path/to/file/oas2md.py <FILE.yaml>
 ```
