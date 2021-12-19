@@ -19,7 +19,7 @@ def __try_create_output_directory():
 
 def __create_file_name(title: str) -> str:
     file_name = title.replace("/", "-")
-    if not re.search("^[a-zA-Z]{1}.*", file_name):
+    if not re.search("^[a-zA-Z].*", file_name):
         file_name = file_name[1:]
         return __create_file_name(file_name)
     return file_name
@@ -87,12 +87,12 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
     example_header_column_width = len(example_header)
 
     table_body = ''
-    for property in properties:
-        header_name = property.name
-        header_description = property.description
-        header_required = 'Yes' if property.required else ''
-        header_type = property.type
-        header_example = property.example
+    for current_property in properties:
+        header_name = current_property.name
+        header_description = current_property.description
+        header_required = 'Yes' if current_property.required else ''
+        header_type = current_property.type
+        header_example = current_property.example
 
         property_header_column_width = __create_table_separator(property_header_column_width, header_name)
         description_header_column_width = __create_table_separator(description_header_column_width, header_description)
@@ -126,14 +126,14 @@ def test(paths: list[Path]):
             f.write('```\n')
 
             f.write('\n## Responses')
-            for response_result in method.response.results:
-                f.write(f'\n### {response_result.code}\n')
-                f.write(response_result.description)
+            for response in method.responses:
+                f.write(f'\n### {response.code}\n')
+                f.write(response.description)
                 f.write('\n#### Headers\n')
-                f.write(__create_headers_table(response_result.headers))
+                f.write(__create_headers_table(response.headers))
                 f.write('\n#### Content\n')
-                for response_body in response_result.bodies:
-                    f.write(f'\n##### {response_body.media_type}\n')
-                    f.write(__create_response_properties_table(response_body.attributes))
+                for content in response.content:
+                    f.write(f'\n##### {content.media_type}\n')
+                    f.write(__create_response_properties_table(content.attributes))
 
         f.close()
