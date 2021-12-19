@@ -3,6 +3,9 @@ Python-based converter which translates an OpenAPI YAML file to a MarkDown file
 
 This script reads an OpenAPI descriptor and creates a markdown file for each path found in the `.yaml` file.
 
+![](https://img.shields.io/badge/calver-21.1.0--dev-blue)
+
+
 ## File naming
 The generated markdown file(s) will have the same name as the related path, sanitized as follow:
 * all the `/` chars will be replaced by `-`;
