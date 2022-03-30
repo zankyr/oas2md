@@ -44,6 +44,9 @@ def __get_response_body(content_type: str, body_content: dict, body_components: 
 
 def get_response_content(response_content: dict, components: dict) -> list[Content]:
     bodies = []
-    for body, body_content in response_content['content'].items():
-        bodies.append(__get_response_body(body, body_content, None))
+
+    if 'content' in response_content:
+        for body, body_content in response_content['content'].items():
+            bodies.append(__get_response_body(body, body_content, None))
+
     return bodies
