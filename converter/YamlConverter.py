@@ -1,8 +1,7 @@
 from converter import HeaderConverter
 from converter import ResponseBodyConverter
-
-from model.Path import Path
 from model.Method import Method
+from model.Path import Path
 from model.Request import Request
 from model.Response import Response
 
@@ -23,8 +22,10 @@ def __get_responses(method_content: dict, components: dict) -> list[Response]:
 
 
 def __get_request(method_content: dict, components: dict) -> Request:
-    bodies = ResponseBodyConverter.get_response_content(method_content['requestBody'], components)
+    if 'requestBody' not in method_content:
+        return Request([])
 
+    bodies = ResponseBodyConverter.get_response_content(method_content['requestBody'], components)
     return Request(bodies)
 
 
