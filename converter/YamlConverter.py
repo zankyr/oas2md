@@ -1,6 +1,6 @@
 from converter import HeaderConverter
 from converter import ResponseBodyConverter
-from model.Method import Method
+from model.Operation import Operation
 from model.Path import Path
 from model.Request import Request
 from model.Response import Response
@@ -29,12 +29,12 @@ def __get_request(method_content: dict, components: dict) -> Request:
     return Request(bodies)
 
 
-def __get_methods(path_content: dict, components: dict) -> list[Method]:
+def __get_operations(path_content: dict, components: dict) -> list[Operation]:
     methods = []
-    for method, method_content in path_content.items():
-        m = Method(method, method_content['summary'], method_content['description'])
-        m.request = __get_request(method_content, components)
-        m.responses = __get_responses(method_content, components)
+    for operation, operation_content in path_content.items():
+        m = Operation(operation, operation_content['summary'], operation_content['description'])
+        m.request = __get_request(operation_content, components)
+        m.responses = __get_responses(operation_content, components)
         methods.append(m)
 
     return methods
@@ -48,11 +48,13 @@ def convert_paths(file_data: dict) -> list[Path]:
     components = file_data['components']
 
     paths = []
+    try:
+        for path, path_content in file_data['paths'].items():
+            converted_path = Path(path)
+            converted_path.operations = __get_operations(path_content, components)
+            paths.append(converted_path)
+            # print(dataclasses.asdict(converted_path))
 
-    for path, path_content in file_data['paths'].items():
-        converted_path = Path(path)
-        converted_path.methods = __get_methods(path_content, components)
-        paths.append(converted_path)
-        # print(dataclasses.asdict(converted_path))
-
-    return paths
+        return paths
+    except Exception as ex:
+        print(f"Error parsing path [{path}]: {ex}")

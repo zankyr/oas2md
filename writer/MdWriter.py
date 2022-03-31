@@ -1,9 +1,10 @@
-import os
 import errno
+import os
 import re
+
+from model.Attribute import Attribute
 from model.Header import Header
 from model.Path import Path
-from model.Attribute import Attribute
 
 
 def __try_create_output_directory():
@@ -120,14 +121,14 @@ def test(paths: list[Path]):
     __try_create_output_directory()
 
     for path in paths:
-        file_name = __create_file_name(path.title)
+        file_name = __create_file_name(path.name)
         print(file_name)
         f = open(f'./output/{file_name}.md', "w")
-        f.write(f'# {path.title}')
+        f.write(f'# {path.name}')
 
-        for method in path.methods:
+        for method in path.operations:
             f.write('\n```HTTP\n')
-            f.write(method.method.upper() + ' ' + path.title + '\n')
+            f.write(method.operation.upper() + ' ' + path.name + '\n')
             f.write('```\n')
 
             f.write('\n## Request')
