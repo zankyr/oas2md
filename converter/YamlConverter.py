@@ -32,9 +32,11 @@ def __get_request(method_content: dict, components: dict) -> Request:
 def __get_operations(path_content: dict, components: dict) -> list[Operation]:
     methods = []
     for operation, operation_content in path_content.items():
-        m = Operation(operation, operation_content['summary'], operation_content['description'])
+        m = Operation(operation)
+        m.summary = operation_content['summary'] if 'summary' in operation_content else ''
+        m.description = operation_content['description'] if 'description' in operation_content else ''
         m.request = __get_request(operation_content, components)
-        m.responses = __get_responses(operation_content, components)
+        # m.responses = __get_responses(operation_content, components)
         methods.append(m)
 
     return methods
@@ -45,7 +47,7 @@ def convert_paths(file_data: dict) -> list[Path]:
     """
 
     # the #/components section, required to solve the $ref declarations
-    components = file_data['components']
+    components = file_data['components'] if 'components' in file_data else []
 
     paths = []
     try:
@@ -53,8 +55,6 @@ def convert_paths(file_data: dict) -> list[Path]:
             converted_path = Path(path)
             converted_path.operations = __get_operations(path_content, components)
             paths.append(converted_path)
-            # print(dataclasses.asdict(converted_path))
-
         return paths
     except Exception as ex:
         print(f"Error parsing path [{path}]: {ex}")
