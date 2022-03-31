@@ -8,7 +8,7 @@ from model.Response import Response
 @dataclass
 class Operation:
     operation: str
-    summary: str = None
-    description: str = None
+    summary: str = field(init=False, default=None)
+    description: str = field(init=False, default=None)
     request: Request = field(init=False, default=None)
     responses: list[Response] = field(init=False, default=None)
