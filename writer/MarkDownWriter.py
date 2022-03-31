@@ -1,10 +1,12 @@
 import errno
 import os
 import re
+from io import StringIO
 
 from model.Attribute import Attribute
 from model.Header import Header
 from model.Path import Path
+from model.Request import Request
 
 
 def __try_create_output_directory():
@@ -100,7 +102,8 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
         header_example = current_property.example
 
         property_header_column_width = __create_table_separator(property_header_column_width, header_name)
-        parent_property_header_column_width = __create_table_separator(parent_property_header_column_width, header_parent)
+        parent_property_header_column_width = __create_table_separator(parent_property_header_column_width,
+                                                                       header_parent)
         description_header_column_width = __create_table_separator(description_header_column_width, header_description)
         type_header_column_width = __create_table_separator(type_header_column_width, header_type)
         required_header_column_width = __create_table_separator(required_header_column_width, header_required)
@@ -108,43 +111,66 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
 
         table_body += f'|{header_name}|{header_parent}|{header_description}|{header_type}|{header_required}|{header_example}|\n'
 
-    table = table_template.format(col1=property_header, col2=parent_property_header, col3=description_header, col4=type_header, col5=required_header,
+    table = table_template.format(col1=property_header, col2=parent_property_header, col3=description_header,
+                                  col4=type_header, col5=required_header,
                                   col6=example_header)
-    table += table_template.format(col1="-" * property_header_column_width, col2="-" * parent_property_header_column_width, col3="-" * description_header_column_width,
+    table += table_template.format(col1="-" * property_header_column_width,
+                                   col2="-" * parent_property_header_column_width,
+                                   col3="-" * description_header_column_width,
                                    col4="-" * type_header_column_width, col5="-" * required_header_column_width,
                                    col6="-" * example_header_column_width)
     table += table_body
     return table
 
 
-def test(paths: list[Path]):
+def __write_request(request: Request) -> str:
+    if not request or not request.content:
+        return ""
+
+    output = StringIO()
+
+    for content in request.content:
+        output.write(f'\n### {content.media_type}\n')
+        output.write(__create_response_properties_table(content.attributes))
+
+    return output.getvalue()
+
+
+def write(paths: list[Path]):
+    # Create output directory
     __try_create_output_directory()
 
+    # Create one file for each path
     for path in paths:
         file_name = __create_file_name(path.name)
-        print(file_name)
+        print(f"Writing {file_name}...")
+
         f = open(f'./output/{file_name}.md', "w")
         f.write(f'# {path.name}')
 
-        for method in path.operations:
+        for operation in path.operations:
             f.write('\n```HTTP\n')
-            f.write(method.operation.upper() + ' ' + path.name + '\n')
+            f.write(operation.operation.upper() + ' ' + path.name + '\n')
             f.write('```\n')
 
-            f.write('\n## Request')
-            for request in method.request.content:
-                f.write(f'\n### {request.media_type}\n')
-                f.write(__create_response_properties_table(request.attributes))
+            f.write('\n## Summary\n')
+            f.write(operation.summary)
 
-            f.write('\n## Responses')
-            for response in method.responses:
-                f.write(f'\n### {response.code}\n')
-                f.write(response.description)
-                f.write('\n#### Headers\n')
-                f.write(__create_headers_table(response.headers))
-                f.write('\n#### Content\n')
-                for content in response.content:
-                    f.write(f'\n##### {content.media_type}\n')
-                    f.write(__create_response_properties_table(content.attributes))
+            f.write('\n## Description\n')
+            f.write(operation.description)
+
+            f.write('\n## Request')
+            f.write(__write_request(operation.request))
+            #
+            # f.write('\n## Responses')
+            # for response in method.responses:
+            #     f.write(f'\n### {response.code}\n')
+            #     f.write(response.description)
+            #     f.write('\n#### Headers\n')
+            #     f.write(__create_headers_table(response.headers))
+            #     f.write('\n#### Content\n')
+            #     for content in response.content:
+            #         f.write(f'\n##### {content.media_type}\n')
+            #         f.write(__create_response_properties_table(content.attributes))
 
         f.close()
