@@ -150,9 +150,9 @@ def __create_request_parameters_table(parameters: list[Parameter]) -> str:
         header_name = current_parameter.name
         header_parent = current_parameter.location
         header_description = current_parameter.description
-        header_required = 'Yes' if current_parameter.required else ''
+        header_required = 'Yes' if current_parameter.required else ' '
         header_type = current_parameter.type
-        header_example = current_parameter.example
+        header_example = current_parameter.example if current_parameter.example else ' '
 
         property_header_column_width = __create_table_separator(property_header_column_width, header_name)
         location_header_column_width = __create_table_separator(location_header_column_width,
