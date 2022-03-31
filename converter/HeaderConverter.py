@@ -40,9 +40,13 @@ def __get_header(header: str, header_content: dict, headers_components: dict) ->
 
 
 def get_headers(response_content: dict, components: dict) -> list[Header]:
+    headers = []
+
+    if 'headers' not in response_content:
+        return headers
+
     headers_content = response_content['headers']
     headers_components = components['headers'] if 'headers' in components else None
-    headers = []
 
     for header, header_content in headers_content.items():
         headers.append(__get_header(header, header_content, headers_components))
