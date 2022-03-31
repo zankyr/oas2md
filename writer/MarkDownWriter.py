@@ -5,6 +5,7 @@ from io import StringIO
 
 from model.Attribute import Attribute
 from model.Header import Header
+from model.Parameter import Parameter
 from model.Path import Path
 from model.Request import Request
 
@@ -109,7 +110,7 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
         required_header_column_width = __create_table_separator(required_header_column_width, header_required)
         example_header_column_width = __create_table_separator(example_header_column_width, header_example)
 
-        table_body += f'|{header_name}|{header_parent}|{header_description}|{header_type}|{header_required}|{header_example}|\n'
+        table_body += f'|{header_name}|{header_parent}|{header_description}|{header_type}|{header_required}|{header_example}|\n '
 
     table = table_template.format(col1=property_header, col2=parent_property_header, col3=description_header,
                                   col4=type_header, col5=required_header,
@@ -123,15 +124,71 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
     return table
 
 
+def __create_request_parameters_table(parameters: list[Parameter]) -> str:
+    table_template = '| {col1} | {col2} | {col3} | {col4} | {col5} | {col6} |\n'
+
+    property_header = 'Parameter'
+    property_header_column_width = len(property_header)
+
+    location_header = 'Location'
+    location_header_column_width = len(location_header)
+
+    description_header = 'Description'
+    description_header_column_width = len(description_header)
+
+    type_header = 'Type'
+    type_header_column_width = len(type_header)
+
+    required_header = 'Required'
+    required_header_column_width = len(required_header)
+
+    example_header = 'Example'
+    example_header_column_width = len(example_header)
+
+    table_body = ''
+    for current_parameter in parameters:
+        header_name = current_parameter.name
+        header_parent = current_parameter.location
+        header_description = current_parameter.description
+        header_required = 'Yes' if current_parameter.required else ''
+        header_type = current_parameter.type
+        header_example = current_parameter.example
+
+        property_header_column_width = __create_table_separator(property_header_column_width, header_name)
+        location_header_column_width = __create_table_separator(location_header_column_width,
+                                                                header_parent)
+        description_header_column_width = __create_table_separator(description_header_column_width, header_description)
+        type_header_column_width = __create_table_separator(type_header_column_width, header_type)
+        required_header_column_width = __create_table_separator(required_header_column_width, header_required)
+        example_header_column_width = __create_table_separator(example_header_column_width, header_example)
+
+        table_body += f'|{header_name}|{header_parent}|{header_description}|{header_type}|{header_required}|{header_example}|\n'
+
+    table = table_template.format(col1=property_header, col2=location_header, col3=description_header,
+                                  col4=type_header, col5=required_header,
+                                  col6=example_header)
+    table += table_template.format(col1="-" * property_header_column_width,
+                                   col2="-" * location_header_column_width,
+                                   col3="-" * description_header_column_width,
+                                   col4="-" * type_header_column_width, col5="-" * required_header_column_width,
+                                   col6="-" * example_header_column_width)
+    table += table_body
+    return table
+
+
 def __write_request(request: Request) -> str:
-    if not request or not request.content:
+    if not request:
         return ""
 
     output = StringIO()
 
-    for content in request.content:
-        output.write(f'\n### {content.media_type}\n')
-        output.write(__create_response_properties_table(content.attributes))
+    if request.parameters:
+        output.write(f'\n### Parameters\n')
+        output.write(__create_request_parameters_table(request.parameters))
+
+    # for content in request.content:
+    #     output.write(f'\n### {content.media_type}\n')
+    #     output.write(__create_response_properties_table(content.attributes))
 
     return output.getvalue()
 

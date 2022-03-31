@@ -1,6 +1,7 @@
 from converter import HeaderConverter
 from converter import ResponseBodyConverter
 from model.Operation import Operation
+from model.Parameter import Parameter
 from model.Path import Path
 from model.Request import Request
 from model.Response import Response
@@ -21,25 +22,44 @@ def __get_responses(method_content: dict, components: dict) -> list[Response]:
     return responses
 
 
-def __get_request(method_content: dict, components: dict) -> Request:
-    if 'requestBody' not in method_content:
-        return Request([])
+def __parse_request_parameters(request_parameters: dict) -> list[Parameter]:
+    parameters = []
 
-    bodies = ResponseBodyConverter.get_response_content(method_content['requestBody'], components)
-    return Request(bodies)
+    for parameter in request_parameters:
+        p = Parameter()
+        p.name = parameter['name']
+        p.location = parameter['in']
+        p.description = parameter['description'] if 'description' in parameter else ''
+        p.required = parameter['required'] if 'required' in parameter else False
+        p.type = parameter['schema']['type']
+        parameters.append(p)
+
+    return parameters
+
+
+def __get_request(operation_content: dict, components: dict) -> Request:
+    request = Request()
+
+    if 'parameters' in operation_content:
+        request.parameters = __parse_request_parameters(operation_content['parameters'])
+
+    if 'requestBody' in operation_content:
+        request.content = ResponseBodyConverter.get_response_content(operation_content['requestBody'], components)
+
+    return request
 
 
 def __get_operations(path_content: dict, components: dict) -> list[Operation]:
-    methods = []
+    operations = []
     for operation, operation_content in path_content.items():
-        m = Operation(operation)
-        m.summary = operation_content['summary'] if 'summary' in operation_content else ''
-        m.description = operation_content['description'] if 'description' in operation_content else ''
-        m.request = __get_request(operation_content, components)
+        operation_object = Operation(operation)
+        operation_object.summary = operation_content['summary'] if 'summary' in operation_content else ''
+        operation_object.description = operation_content['description'] if 'description' in operation_content else ''
+        operation_object.request = __get_request(operation_content, components)
         # m.responses = __get_responses(operation_content, components)
-        methods.append(m)
+        operations.append(operation_object)
 
-    return methods
+    return operations
 
 
 def convert_paths(file_data: dict) -> list[Path]:
