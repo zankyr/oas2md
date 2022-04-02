@@ -1,8 +1,9 @@
 import argparse
+
 import yaml
 
-from writer import MdWriter
 from converter import YamlConverter
+from writer import MarkDownWriter
 
 parser = argparse.ArgumentParser(description="Convert an OpenAPI YAML file to a Markdown file")
 parser.add_argument("file", help="The file to parse")
@@ -14,7 +15,7 @@ with open(args.file, "r") as stream:
         
         paths = YamlConverter.convert_paths(data)
 
-        MdWriter.test(paths)
+        MarkDownWriter.write(paths)
        
     except yaml.YAMLError as exc:
         print(exc)

@@ -1,18 +1,18 @@
 openapi: 3.0.1
 info:
   title: SSO APIs
-  description: The purpose of this document is to describe all APIs provided by ReSky.
+  description: The purpose of this document is to describe all APIs provided by PeterWitt.
   contact:
     name: Support
-    url: https://wiki.at.sky/display/DPTECH/Servlet+Flows
+    url: https://wiki.at.sky/display/DPTECH/ita-sso-peterwitt
     email: dl.ita.it.agileteam.sso@skytv.it
   license:
     name: Apache License Version 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
-  version: 1.0.6
+  version: 1.0.0
 
 servers:
-  - url: https://resky.insideauth.{environment}.sky.aws/ReSky
+  - url: https://peterwitt.insideauth.{environment}.sky.aws/PeterWitt
     variables:
       environment:
         default: test
@@ -23,127 +23,653 @@ servers:
           - prod
 
 tags:
-  - name: onepuck - activation
-    description: Operations for the OnePuck activation flow
+  - name: preregistration
+    description: Operations for the preregistration flow
 
 paths:
-  /skyid/activate:
-    get:
-      summary: Start the OnePuck activation process for a user.
+  /skyid/preregistration:
+    post:
+      summary: Pre-register a user for the OnePuck flow
       description: >
-        Given an identification token (GUID), this service validate the user data (if the user is valid, active, etc.) and redirect the request to the next step accordingly the outcome of the process.
+        Check if the user is able to proceed (meaning that the user is not yet registered and the data provided is not associated with another account) and add the user data to the pre-registration table.
         <br />
-        There are four possible results:
-          * the user is valid → go to final step of the activation process
-          * the link is expired:
-            * the user has a registered mobile phone → go to the OTP validation steps
-            * the user hasn't a registered mobile phone → go to the manual registration steps
-          * Something went wrong (request or user data are not valid, server errors, etc.) → go to error page
+        There are nine possible results, but all of them can be reduced to two main cases:
+          * a positive result code (zero included) represents a success case;
+          * a negative result code represents an error.<br />
+
+        For further details   for each possibile response, see the response section or the documentation.
       externalDocs:
         description: Service flow and further details
-        url: https://wiki.at.sky/display/DPTECH/activateUserPrereg
+        url: https://wiki.at.sky/display/DPTECH/%5BSSO%5D%3A+P1902983-NewOnePuck-preregistration-drop2
       tags:
-        - onepuck - activation
-      parameters:
-        - in: query
-          name: guid
-          schema:
-            type: string
-          example: 12345a6789b01234c
-          required: true
-          description: The user identification token required to retrieve the user data
+        - preregistration
+      requestBody:
+        required: true
+        content:
+          application/json; charset=utf-8:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: An ID provided by the caller
+                  example: RESKY
+                method:
+                  type: string
+                  description: Value fixed to `onepuck_preregistration_request`
+                  example: onepuck_preregistration_request
+                params:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                      pattern: "^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+[A-Za-z0-9-]*(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$"
+                      description: The user e-mail
+                      example: user@example.com
+                    fiscalcode:
+                      type: string
+                      pattern: "^[a-zA-Z0-9]{16}|[0-9]{11}$"
+                      description: The user fiscal code or VAT code
+                      example: ABCDEF12G34H567I
+                    clientcode:
+                      type: string
+                      description: The user client code
+                      example: S123456
+                  required:
+                    - email
+                    - fiscalcode
+              required:
+                - id
+                - method
+                - params
       responses:
-        '302':
-          description: >
-            This service will redirect to a page defined by the `Location` response header, depending on the outcome of the processing.<br />
-            Available URLs are:
-              * Success request - https://{host}/tv/skyq/attivazione-skyid
-              * Expired link, the user has a valid mobile phone - https://{host}/tv/skyq/attivazione-skyid?goto=onePuckSectionRestoreSkyId
-              * Expired link, the user doesn't have a valid mobile phone - https://{host}/tv/skyq/attivazione-skyid?goto=onePuckSectionRestoreSkyId&na=true
-              * Error - https://{host}/it/attivazione-skyid-ko
+        '200':
+          description: Default response returned by all the PeterWitt's services. The outcome of the request (success or failure) is defined by the content of the response.
           headers:
-            Location:
-              description: The page to redirect to
-              schema:
-                type: string
-                format: uri
-                example: https://{host}/tv/skyq/attivazione-skyid
             ssoRequestId:
               $ref: '#/components/headers/ssoRequestId'
-  /skyid/changePasswordPrereg:
-      post:
-        summary: Activate the user account.
-        description: >
-          Final step of the OnePuck activation flow.
-          Update the user password, setting it to the value provided in the form shown above (if the password is valid), and activate the user.
-        externalDocs:
-          description: Service flow and further details
-          url: https://wiki.at.sky/display/DPTECH/cleanUserPrereg
-        tags:
-          - onepuck - activation
-        responses:
-          '200':
-            description: Default response returned by all the ReSky's services. The outcome of the request (success or failure) is defined by the content of the response.
-            headers:
-              Set-Cookie:
-                schema:
+            Expires:
+              $ref: '#/components/headers/Expires'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Pragma:
+              $ref: '#/components/headers/Pragma'
+          content:
+            application/json-rpc:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The same ID provided in the request body
+                    example: RESKY
+                  result:
+                    type: integer
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+                      - -1
+                      - -2
+                      - -3
+                      - -4
+                      - -5
+                      - -6
+                    description: >
+                      The result code of the outcome, defined as follow:
+                        * 0:
+                          OK - the user data was successfully pre-registered. The user is new (there is no data in the SSO system)
+                        * 1:
+                          OK - the user data was successfully pre-registered. The user already existed as a prospect user
+                        * 2:
+                          OK - user was already registered
+                        * -1:
+                          KO - invalid user status (user is not active nor inactive)
+                        * -2:
+                          KO - the provided client code is already registered to another user
+                        * -3:
+                          KO - invalid request data. The request doesn't contain all the required parameters or the parameters are not valid
+                        * -4:
+                          KO -  the provided e-mail and/or fiscal code are already merged or there was an error saving the data in the database
+                        * -5:
+                          KO - user is not prospect
+                        * -6:
+                          KO - the provided e-mail and client code are not linked to the same data (i.e. the e-mail is linked to a different client code and/or viceversa).
+                  message:
+                    type: string
+                    description: The description of the outcome
+                  email:
+                    type: string
+                    format: email
+                    description: >
+                      This parameter is present only in the `-2` and `-5` error cases and it contains the e-mail retrieved from the db (which is different from the e-mail provided in the request)
+              examples:
+                Success - new user pre-registered:
+                  summary: Success - new user pre-registered
+                  description: A new user was successfully pre-registered for the first time. No user data exists in SSO.
+                  value:
+                    id: 12345678
+                    result: 0
+                    message: Pre-registration record created
+                Success - new user pre-registration updated:
+                  summary: Success - new user pre-registration updated
+                  description: The user was already pre-registered, its data has been updated. No user data exists in SSO.
+                  value:
+                    id: 12345678
+                    result: 0
+                    message: Pre-registration record updated
+                Success - user pre-registered:
+                  summary: Success - user pre-registered
+                  description: A prospect user was successfully pre-registered for the first time.
+                  value:
+                    id: 12345678
+                    result: 1
+                    message: Pre-registration record created
+                Success - user pre-registration updated:
+                  summary: Success - user pre-registration updated
+                  description: A prospect user was already pre-registered, its data has been updated.
+                  value:
+                    id: 12345678
+                    result: 1
+                    message: Pre-registration record updated
+                Success - user already registered:
+                  summary: Success - user already registered
+                  description: The user is already registered on the SSO system, no need to pre-register it.
+                  value:
+                    id: 12345678
+                    result: 2
+                    message: Pre-registration record created
+                Error - existing client code:
+                  summary: Error - client code already existing
+                  description: >
+                    The client code provided in the request is already associated to an existing user, different from the current one.\
+
+                    The response contains the e-mail to which the client code is linked.
+                  value:
+                    id: 12345678
+                    result: -2
+                    message: Client code already existing in SSO
+                    email: email@example.com
+                Error - invalid email:
+                  summary: Error - invalid e-mail
+                  description: The e-mail provided in the request hasn't a valid format.
+                  value:
+                    id: 12345678
+                    result: -3
+                    message: Invalid email
+                Error - invalid fiscal code:
+                  summary: Error - invalid fiscal code
+                  description: The fiscal code provided in the request hasn't a valid format.
+                  value:
+                    id: 12345678
+                    result: -3
+                    message: Invalid fiscal code
+                Error - already merged:
+                  summary: Error - user data already merged
+                  description: The provided e-mail and/or fiscal code are already merged
+                  value:
+                    id: 12345678
+                    result: -4
+                    message: E-mail or fiscal code already merged
+                Error - user not prospect:
+                  summary: Error - user not prospect
+                  description: >
+                    The user is not a prospect.
+                    The response contains the user e-mail.
+                  value:
+                    id: 12345678
+                    result: -5
+                    message: User not prospect
+                    email: email@example.com
+                Error - wrong association:
+                  summary: Error - wrong email/client code association
+                  description: the provided e-mail and client code are not linked to the same data (i.e. the e-mail is linked to a different client code and/or viceversa).
+                  value:
+                    id: 12345678
+                    result: -6
+                    message: Wrong client code and e-mail association
+
+  /prereg/create:
+    post:
+      summary: Pre-register a user for the Fibra flow
+      description: >
+        Check if the user is able to proceed (meaning that the user is not yet registered and the data provided is not associated with another account) and add the user data to the pre-registration table.
+        <br />
+        There are seven possible results, but all of them can be reduced to two main cases:
+          * a positive result code (zero included) represents a success case;
+          * a negative result code represents an error. <br />
+
+
+        For further details for each possibile response, see the response section or the documentation.
+      externalDocs:
+        description: Service flow and further details
+        url: https://wiki.at.sky/display/DPTECH/%5BSSO%5D%3A+Preregistration+-+DROP+2
+      tags:
+        - preregistration
+      requestBody:
+        required: true
+        content:
+          application/json; charset=utf-8:
+            schema:
+              type: object
+              properties:
+                id:
                   type: string
-                  example: GUID=deleteme; Domain=.sky.it; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Path=/
-                description: The invalidated GUID cookie.
-              ssoRequestId:
-                $ref: '#/components/headers/ssoRequestId'
-              Expires:
-                $ref: '#/components/headers/Expires'
-              Cache-Control:
-                $ref: '#/components/headers/Cache-Control'
-              Content-Type:
-                $ref: '#/components/headers/Content-Type'
-              Pragma:
-                $ref: '#/components/headers/Pragma'
-        
+                  description: An ID provided by the caller
+                  example: RESKY
+                method:
+                  type: string
+                  description: Value fixed to `preregistration_request`
+                  example: preregistration_request
+                params:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                      pattern: "^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+[A-Za-z0-9-]*(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$"
+                      description: The user e-mail
+                      example: user@example.com
+                    fiscalcode:
+                      type: string
+                      pattern: "^[a-zA-Z0-9]{16}|[0-9]{11}$"
+                      description: The user fiscal code or VAT code
+                      example: ABCDEF12G34H567I
+                    password:
+                      type: string
+                      format: password
+                      description: >
+                        The user password.\
+
+                        A valid password:
+                          * should be at least 8 chars and at most 30 chars
+                          * and should be different from the user e-mail
+                          * and should have at least 3 of the following rules:
+                            * a lower case letter;
+                            * an upper case letter
+                            * a digit
+                            * a special character
+                          * and should not contains a month followed by two digits (e.g. Jan22)
+                  required:
+                    - email
+                    - fiscalcode
+                    - password
+              required:
+                - id
+                - method
+                - params
+      responses:
+        '200':
+          description: Default response returned by all the PeterWitt's services. The outcome of the request (success or failure) is defined by the content of the response.
+          headers:
+            ssoRequestId:
+              $ref: '#/components/headers/ssoRequestId'
+            Expires:
+              $ref: '#/components/headers/Expires'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Pragma:
+              $ref: '#/components/headers/Pragma'
+          content:
+            application/json-rpc:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The same ID provided in the request body
+                    example: RESKY
+                  result:
+                    type: integer
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+                      - -1
+                      - -2
+                      - -3
+                      - -4
+                    description: >
+                      The result code of the outcome, defined as follow:
+                        * 0:
+                          OK - the user data was successfully pre-registered. The user is new (there is no data in the SSO system)
+                        * 1:
+                          OK - the user data was successfully pre-registered. The user already existed as a prospect user
+                        * 2:
+                          OK - user was already registered
+                        * -1:
+                          KO - invalid password: the password from the request doesn't match the registered password
+                        * -2:
+                          KO - invalid user status (user is not active nor inactive) or the client code from the request doesn't match the client code from the system
+                        * -3:
+                          KO - invalid request data. The request doesn't contain all the required parameters or the parameters are not valid
+                        * -4:
+                          KO - server error (generic exception or error saving data in the database) or the provided fiscal code and/or e-mail are already merged
+                  message:
+                    type: string
+                    description: The description of the outcome
+              examples:
+                Success - new user pre-registered:
+                  summary: Success - new user pre-registered
+                  description: A new user was successfully pre-registered for the first time. No user data exists in SSO.
+                  value:
+                    id: RESKY
+                    result: 0
+                    message: Pre-registration record created/updated
+                Success - user pre-registered:
+                  summary: Success - user pre-registered
+                  description: A prospect user was successfully pre-registered for the first time.
+                  value:
+                    id: RESKY
+                    result: 1
+                    message: Pre-registration record created/updated
+                Success - user already registered:
+                  summary: Success - user already registered
+                  description: The user is already registered on the SSO system, no need to pre-register it.
+                  value:
+                    id: RESKY
+                    result: 2
+                    message: multicontract
+                Error - not matching password:
+                  summary: Error - not matching password
+                  description: >
+                    The password provided in the request doesn't match the password associated to the existing user.
+                  value:
+                    id: RESKY
+                    result: -1
+                    message: wrong password
+                Error - invalid client code:
+                  summary: Error - invalid client code
+                  description: The client code provided in the request doesn't match the client code associated to the existing user.
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: cannot creating preregistration
+                Error - invalid user status:
+                  summary: Error - invalid user status
+                  description: The user has a status that it isn't active nor inactive
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: invalid SSO status
+                Error - invalid request:
+                  summary: Error - invalid request
+                  description: The request doesn't have all the required parameters
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid request
+                Error - invalid email:
+                  summary: Error - invalid e-mail
+                  description: The e-mail parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid email
+                Error - invalid fiscal code:
+                  summary: Error - fiscal code
+                  description: The fiscal code parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid fiscalcode
+                Error - invalid password:
+                  summary: Error - fiscal code
+                  description: The password parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid password
+                Error - insert error:
+                  summary: Error - error while saving the user data
+                  description: There was an error saving the user data in the database
+                  value:
+                    id: RESKY
+                    result: -4
+                    message: error creating preregistration record
+
+  /prereg/reconciliation:
+    post:
+      summary: Reconcile pre-registration request and register a user
+      description: >
+        Given several user data (see the request section), this service reconciles the existing pre-registration request
+        of the user and register the user itself, promoting it to a customer.
+      externalDocs:
+        description: Service flow and further details
+        url: https://wiki.at.sky/display/DPTECH/%5BSSO%5D%3A+P1902983-NewOnePuck+-+reconciliation+-+drop2
+      requestBody:
+        required: true
+        content:
+          application/json; charset=utf-8:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: An ID provided by the caller
+                  example: RESKY
+                method:
+                  type: string
+                  description: Value fixed to `reconciliation_request`
+                  example: reconciliation_request
+                params:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                      pattern: "^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+[A-Za-z0-9-]*(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$"
+                      description: The user e-mail
+                      example: user@example.com
+                    fiscalcode:
+                      type: string
+                      pattern: "^[a-zA-Z0-9]{16}|[0-9]{11}$"
+                      description: The user fiscal code or VAT code
+                      example: ABCDEF12G34H567I
+                    clientcode:
+                      type: string
+                      description: The user client code
+                      example: S123456
+                    contractcode:
+                      type: string
+                      description: The user contract code
+                      example: 12345678
+                    contractStatus:
+                      type: string
+                      description: The status of the user contract code
+                      example: FIRMATO
+                    firstname:
+                      type: string
+                      description: The user firstname
+                      example: MARIO
+                    surname:
+                      type: string
+                      description: The user surname
+                      example: ROSSI
+                  required:
+                    - email
+                    - fiscalcode
+                    - clientcode
+                    - contractcode
+                    - contractStatus
+                    - firstname
+                    - surname
+              required:
+                - id
+                - method
+                - params
+      responses:
+        '200':
+          description: Default response returned by all the PeterWitt's services. The outcome of the request (success or failure) is defined by the content of the response.
+          headers:
+            ssoRequestId:
+              $ref: '#/components/headers/ssoRequestId'
+            Expires:
+              $ref: '#/components/headers/Expires'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Pragma:
+              $ref: '#/components/headers/Pragma'
+          content:
+            application/json-rpc:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The same ID provided in the request body
+                    example: RESKY
+                  result:
+                    type: integer
+                    enum:
+                      - 0
+                      - -2
+                      - -3
+                      - -4
+                    description: >
+                      The result code of the outcome, defined as follow:
+                        * 0:
+                          OK - the user data was successfully registered OR the user has been downgraded
+                        * -2:
+                          KO - inconsistent user data. See the examples or the documentation for further details.
+                        * -3:
+                          KO - invalid request data. The request doesn't contain all the required parameters or the parameters are not valid
+                        * -4:
+                          KO - server error (generic exception or error saving data in the database)
+                  message:
+                    type: string
+                    description: The description of the outcome
+              examples:
+                Success - user registered:
+                  summary: Success - user registered
+                  description: The user was successfully reconciled and registered.
+                  value:
+                    id: RESKY
+                    result: 0
+                    message: Customer registered on SSO
+                Success - user already registered:
+                  summary: Success - user already registered
+                  description: The provided e-mail is associated to an existing user, which is active and not prospect
+                  value:
+                    id: RESKY
+                    result: 0
+                    message: Customer already registered on SSO, nothing to do
+                Success - user downgraded:
+                  summary: Success - user downgraded
+                  description: >
+                    if the contract status provided in the request was `ANNULLATO`, the user has requested to remove the data
+                    linked to the provided client code. If there are contracts linked to the client code, the user is
+                    set to `PROSPECT` and the attributes linked to the client code are removed.\
+                    
+                    Last, the pre-registration request linked to the e-mail and fiscal code is removed.
+                  value:
+                    id: RESKY
+                    result: 0
+                    message: Success
+                Error - invalid request:
+                  summary: Error - invalid request
+                  description: The request doesn't have all the required parameters
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid request
+                Error - wrong fiscal code:
+                  summary: Error - wrong fiscal code
+                  description: >
+                    The fiscal code provided in the request and the fiscal code retrieved from the CRM system (via the client code) are different
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: CRM fiscalcode is different
+                Error - missing contracts:
+                  summary: Error - missing contracts
+                  description: >
+                    There are no contracts (in the CRM system) linked to the provided client code
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: lista contatti CRM vuota
+                Error - no contract found:
+                  summary: Error - no contract found
+                  description: The contract code provided in the request doesn't exist in the CRM data
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: codice contratto non trovato in CRM
+                Error - existing client code:
+                  summary: Error - existing client code
+                  description: The client code provided in the request is already used by another customer
+                  value:
+                    id: RESKY
+                    result: -2
+                    message: client code already exists in SSO
+                Error - invalid email:
+                  summary: Error - invalid e-mail
+                  description: The e-mail parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid email
+                Error - invalid client code:
+                  summary: Error - invalid client code
+                  description: The client code parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid clientcode
+                Error - invalid fiscal code:
+                  summary: Error - invalid fiscal code
+                  description: The fiscal code parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid fiscalcode
+                Error - invalid contract code:
+                  summary: Error - invalid contract code
+                  description: The contract code parameter has an invalid format
+                  value:
+                    id: RESKY
+                    result: -3
+                    message: Invalid contractcode
+
 components:
   headers:
     ssoRequestId:
       schema:
         type: string
-        example: 12a3bc4d-e5fg
+        example: ssoRequestId=12a3bc4d-e5fg
       description: A unique identifier which identifies all the operations of a request
     Expires:
       schema:
         type: string
         format: date-time
-        example: Mon, 26 Jul 1997 05:00:00 GMT
+        example: Expires=0
       description: >
-        Contains the date/time after which the response is considered expired. A date in the past means that the resource is already expired.\
-
-        For historical reasons, this header has a fixed value of `Mon, 26 Jul 1997 05:00:00 GMT`
+        Contains the date/time after which the response is considered expired. A date in the past means that the resource is already expired.<br />
+        Invalid expiration dates with value 0 represent a date in the past and mean that the resource is already expired.
     Cache-Control:
       schema:
         type: string
-        example: no-store, no-cache, must-revalidate, pre-check=0, post-check=0
+        example: Cache-Control=must-revalidate, post-check=0, pre-check=0
       description: >
-        `no-cache` allows caches to store a response, but requires them to revalidate it before reuse.\
-
-        `must-revalidate` response directive indicates that the response can be stored in caches and can be reused while fresh. Once it becomes stale, it must be validated with the origin server before reuse.\
-
-        `no-store` indicates that any caches of any kind (private or shared) should not store this response.\
-
+        `must-revalidate` response directive indicates that the response can be stored in caches and can be reused while fresh. Once it becomes stale, it must be validated with the origin server before reuse.<br />
         `pre-check` and `post-check` are Internet Explorer dedicated directives avoiding response caching.
     Content-Type:
       schema:
         type: string
-        example: application/json;charset=utf-8
-      description: The MIME type and the character encoding standard of the resource or the data.
+        example: Content-Type=application/json-rpc
+      description: The MIME type of the resource or the data. For PeterWitt, this value is always `application/json-rpc`
     Pragma:
       schema:
         type: string
-        example: no-cache
-      description: This header serves for backwards compatibility with the HTTP/1.0 caches that do not have a Cache-Control HTTP/1.1 header.
-    Set-Cookie-rec:
-      schema:
-        type: string
-        example: REC=abcde12345; Secure; HttpOnly
+        example: Pragma=public
       description: >
-        REC<br/>
-        Permanent cookie required to authenticate the user request through several linked steps, when no other authentications (e.g. login)
-        are available (for example, in the recover info flows).
+        This header serves for backwards compatibility with the HTTP/1.0 caches that do not have a Cache-Control HTTP/1.1 header.<br />
+        `Pragma: public` indicates that the response MAY be cached by any cache, even if it would normally be non-cacheable or cacheable only within a non- shared cache.

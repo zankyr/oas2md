@@ -1,12 +1,9 @@
-from dataclasses import  dataclass, field, make_dataclass
-import dataclasses
+from dataclasses import dataclass, field
 
-from model.Method import Method
+from model.Operation import Operation
 
 
 @dataclass
 class Path:
-    title: str
-    methods: list[Method] = field(init=False, default=None)
-
-            
+    name: str
+    operations: list[Operation] = field(init=False, default=None)
