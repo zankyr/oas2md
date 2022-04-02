@@ -70,11 +70,13 @@ def convert_paths(file_data: dict) -> list[Path]:
     components = file_data['components'] if 'components' in file_data else []
 
     paths = []
-    try:
-        for path, path_content in file_data['paths'].items():
+
+    for path, path_content in file_data['paths'].items():
+        try:
             converted_path = Path(path)
             converted_path.operations = __get_operations(path_content, components)
             paths.append(converted_path)
-        return paths
-    except Exception as ex:
-        print(f"Error parsing path [{path}]: {ex}")
+        except Exception as ex:
+            print(f"Error parsing path [{path}]: {ex}")
+
+    return paths
