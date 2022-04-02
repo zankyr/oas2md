@@ -97,7 +97,7 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
     for current_property in properties:
         header_name = current_property.name
         header_parent = current_property.parent_attribute if current_property.parent_attribute else ' '
-        header_description = current_property.description
+        header_description = current_property.description if current_property.description else ' '
         header_required = 'Yes' if current_property.required else ' '
         header_type = current_property.type
         header_example = current_property.example
