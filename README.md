@@ -1,5 +1,5 @@
 # oas2md
-Python-based converter which translates an OpenAPI YAML file to a MarkDown file
+Python-based converter which translates an OpenAPI YAML file to a MarkDown file.
 
 This script reads an OpenAPI descriptor and creates a markdown file for each path found in the `.yaml` file.
 
