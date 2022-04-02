@@ -96,9 +96,9 @@ def __create_response_properties_table(properties: list[Attribute]) -> str:
     table_body = ''
     for current_property in properties:
         header_name = current_property.name
-        header_parent = current_property.parent_attribute if current_property.parent_attribute else ''
+        header_parent = current_property.parent_attribute if current_property.parent_attribute else ' '
         header_description = current_property.description
-        header_required = 'Yes' if current_property.required else ''
+        header_required = 'Yes' if current_property.required else ' '
         header_type = current_property.type
         header_example = current_property.example
 
@@ -149,7 +149,7 @@ def __create_request_parameters_table(parameters: list[Parameter]) -> str:
     for current_parameter in parameters:
         header_name = current_parameter.name
         header_parent = current_parameter.location
-        header_description = current_parameter.description
+        header_description = current_parameter.description if current_parameter.description else ' '
         header_required = 'Yes' if current_parameter.required else ' '
         header_type = current_parameter.type
         header_example = current_parameter.example if current_parameter.example else ' '
@@ -186,9 +186,10 @@ def __write_request(request: Request) -> str:
         output.write(f'\n### Parameters\n')
         output.write(__create_request_parameters_table(request.parameters))
 
-    # for content in request.content:
-    #     output.write(f'\n### {content.media_type}\n')
-    #     output.write(__create_response_properties_table(content.attributes))
+    if request.content:
+        for content in request.content:
+            output.write(f'\n### {content.media_type}\n')
+            output.write(__create_response_properties_table(content.attributes))
 
     return output.getvalue()
 
